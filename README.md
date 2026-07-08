@@ -120,11 +120,4 @@ contract-checker/
 | `npm run start` | 프로덕션 서버 실행 |
 | `npm run lint` | 린트 검사 |
 
-## 로드맵
 
-- [x] Mock 기반 전체 파이프라인 구현
-- [ ] AWS Textract OCR 실제 연동
-- [ ] 법원 등기정보광장 API 연동
-- [ ] 국토교통부 실거래가 / 한국부동산원 API 연동
-- [ ] OpenAI 판단 AI 연동
-- [ ] HUG 공식 API 연동
