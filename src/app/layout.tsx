@@ -1,9 +1,10 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import "./globals.css";
+import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: '콘트렉체커 - 전세사기 감시자',
-  description: '계약서를 분석하여 전세사기 위험도를 판단하는 AI 서비스',
+  title: "푸드코스트 - 메뉴 원가 자동계산",
+  description: "레시피만 입력하면, 원가가 자동으로 계산됩니다",
 };
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

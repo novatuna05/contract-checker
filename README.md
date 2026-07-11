@@ -1,123 +1,135 @@
-# 콘트렉체커 (Contract Checker)
+# 푸드코스트 (FoodCost)
 
-> 전세 계약서를 분석하여 **전세사기 위험도**를 판단하고 브리핑해주는 웹 서비스
+영수증 한 장으로 끝내는 요식업 원가관리 서비스
 
-전세 계약을 앞둔 임차인이 계약서 이미지를 업로드하면, OCR로 내용을 추출하고 등기·시세·독소조항·HUG 가입 가능 여부를 종합 분석하여 위험도 등급(안전 / 주의 / 위험 / 매우위험)을 알려줍니다. 회원가입 없이 익명으로 바로 사용할 수 있습니다.
+영수증 사진을 찍어 업로드하면 AI가 식재료를 자동 인식하고, 레시피 기반으로 메뉴별 원가를 실시간 계산해주는 웹 애플리케이션입니다.
 
-## 주요 기능
+## 핵심 기능
 
-- **계약서 업로드** — JPG, PNG, PDF 지원, 드래그 앤 드롭 가능
-- **OCR 처리** — 계약서에서 주소, 보증금, 계약 조건, 특약사항 추출 (AWS Textract 예정)
-- **빚 체크** — 법원 등기정보광장 Open API로 (근)저당권 등 선순위 채권 확인
-- **시세 체크** — 국토교통부 실거래가 + 한국부동산원 API로 매물 시세 적정성 판단
-- **독소조항 체크** — 표준계약서와 비교하여 비표준 조항 탐지 및 유불리 분석
-- **HUG 가입 가능 여부** — 주택도시보증공사 전세보증 가입 조건 판정
-- **판단 AI 브리핑** — LLM이 위 결과를 종합하여 위험도 등급과 권장 행동 제시
+### 1. AI 영수증 자동 인식
+- 영수증/견적서 이미지(JPG, PNG, WebP) 업로드 시 AI가 식재료명, 수량, 단가를 자동 추출
+- CSV 파일 업로드도 지원
+- GPT-4o Vision(품목명 인식) + AWS Textract(숫자/금액 OCR) 하이브리드 파이프라인
+- 동일 식재료 업로드 시 단가 자동 갱신 + 이력 기록
 
-## 분석 파이프라인
+### 2. 레시피 기반 원가 자동 계산
+- 메뉴별 식재료 배합(레시피) 등록
+- 원가 = 식재료 단가 x 사용량 자동 산출
+- 원가율, 마진, 위험도(양호/주의/위험) 실시간 표시
+- 식재료 단가 변경 시 연관 메뉴 원가 자동 반영
 
-```
-계약서 업로드
-     │
-     ▼
- ① OCR 텍스트 추출
-     │
-     ▼
- ② 병렬 분석 ─── 빚 체크 · 시세 체크 · 독소조항 체크
-     │
-     ▼
- ③ HUG 가입 가능 여부 확인
-     │
-     ▼
- ④ 판단 AI 종합 분석 → 위험도 브리핑
-```
+### 3. 대시보드 및 리포트
+- 통계 요약: 총 메뉴 수, 식재료 수, 평균 원가율, 위험 메뉴 수
+- 원가율 순위 바 차트
+- 식재료 비용 비중 파이 차트
+- 월별 단가 변동 추이 라인 차트
 
 ## 기술 스택
 
-| 구분 | 기술 |
+| 분류 | 기술 |
 |------|------|
-| 프레임워크 | Next.js 15 (App Router) |
+| 프레임워크 | Next.js 14 (App Router) |
 | 언어 | TypeScript |
-| UI | React 19, Tailwind CSS |
-| OCR | AWS Textract (예정) |
-| 외부 API | 법원 등기정보광장, 국토교통부 실거래가, 한국부동산원 |
-| AI | OpenAI API (예정) |
-
-현재 모든 외부 연동은 **Mock 모듈**로 구현되어 있으며, 환경변수 `USE_MOCK=false`로 전환하면 실제 API를 사용하도록 설계되어 있습니다 (인터페이스 + 팩토리 패턴).
+| 스타일링 | Tailwind CSS |
+| DB | SQLite + Prisma ORM |
+| 인증 | NextAuth.js (이메일 + Google + Kakao) |
+| AI/OCR | OpenAI GPT-4o, AWS Textract |
+| 차트 | Recharts |
+| 상태관리 | Zustand |
+| 검증 | Zod |
 
 ## 시작하기
 
-### 1. 설치
+### 사전 요구사항
+- Node.js 18 이상
+- OpenAI API 키
+- AWS Access Key (Textract 사용 시)
+
+### 설치 및 실행
 
 ```bash
+# 의존성 설치
 npm install
-```
 
-### 2. 환경변수 설정
+# 데이터베이스 초기화
+npx prisma db push
 
-```bash
-cp .env.local.example .env.local
-```
+# 시드 데이터 입력 (선택)
+npm run seed
 
-`.env.local`에서 필요한 값을 설정합니다:
-
-| 변수 | 설명 |
-|------|------|
-| `USE_MOCK` | `true`면 Mock 서비스, `false`면 실제 API 사용 |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS Textract OCR용 |
-| `REGISTRY_API_KEY` | 법원 등기정보광장 API 키 |
-| `MOLIT_API_KEY` | 국토교통부 실거래가 API 키 |
-| `KREB_API_KEY` | 한국부동산원 API 키 |
-| `OPENAI_API_KEY` | 판단 AI용 OpenAI API 키 |
-
-### 3. 개발 서버 실행
-
-```bash
+# 개발 서버 실행
 npm run dev
 ```
 
-브라우저에서 http://localhost:3000 접속
+브라우저에서 http://localhost:3000 으로 접속합니다.
+
+### 환경 변수 설정
+
+프로젝트 루트에 `.env` 파일을 생성하고 아래 내용을 입력합니다:
+
+```env
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key"
+
+# OpenAI
+OPENAI_API_KEY="sk-..."
+
+# AWS (Textract OCR)
+AWS_ACCESS_KEY_ID="your-access-key"
+AWS_SECRET_ACCESS_KEY="your-secret-key"
+AWS_REGION="ap-northeast-2"
+
+# OAuth (선택 - 소셜 로그인 사용 시)
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+KAKAO_CLIENT_ID=""
+KAKAO_CLIENT_SECRET=""
+```
 
 ## 프로젝트 구조
 
 ```
-contract-checker/
-├── src/
-│   ├── app/
-│   │   ├── page.tsx              # 메인 페이지
-│   │   ├── layout.tsx            # 레이아웃
-│   │   └── api/analyze/route.ts  # 분석 API 엔드포인트
-│   ├── components/
-│   │   ├── FileUpload.tsx        # 파일 업로드
-│   │   ├── RiskBriefing.tsx      # 위험도 브리핑
-│   │   ├── DebtResult.tsx        # 빚 체크 결과
-│   │   ├── PriceResult.tsx       # 시세 체크 결과
-│   │   ├── ContractResult.tsx    # 독소조항 결과
-│   │   └── HugResult.tsx         # HUG 가입 결과
-│   ├── services/
-│   │   ├── orchestrator.ts       # 분석 파이프라인 조율
-│   │   ├── factory.ts            # Mock/Real 서비스 팩토리
-│   │   ├── types.ts              # 공통 타입 정의
-│   │   ├── ocr/                  # OCR 서비스 (interface + mock)
-│   │   ├── debt/                 # 빚 체크 서비스
-│   │   ├── price/                # 시세 체크 서비스
-│   │   ├── contract/             # 독소조항 체크 서비스
-│   │   ├── hug/                  # HUG 판정 서비스
-│   │   └── judgment/             # 판단 AI 서비스
-│   └── lib/
-│       ├── constants.ts          # 상수
-│       └── region-codes.ts       # 시도/시군구 지역코드 매핑
-├── .env.local.example            # 환경변수 템플릿
-└── package.json
+src/
+├── app/
+│   ├── (auth)/          # 로그인, 회원가입
+│   ├── (dashboard)/     # 대시보드, 식재료, 레시피, 원가, 리포트
+│   └── api/             # REST API 엔드포인트
+├── components/
+│   ├── forms/           # IngredientModal, RecipeEditor, UploadModal
+│   └── layout/          # Sidebar
+├── lib/
+│   ├── openai.ts        # AI 영수증 분석 파이프라인
+│   ├── auth.ts          # NextAuth 설정
+│   ├── prisma.ts        # Prisma 클라이언트
+│   └── utils.ts         # 포맷팅/계산 유틸리티
+└── types/               # TypeScript 인터페이스
 ```
 
-## 스크립트
+## AI 파이프라인 구조
 
-| 명령어 | 설명 |
-|--------|------|
-| `npm run dev` | 개발 서버 실행 |
-| `npm run build` | 프로덕션 빌드 |
-| `npm run start` | 프로덕션 서버 실행 |
-| `npm run lint` | 린트 검사 |
+```
+영수증 이미지 업로드
+    │
+    ├─→ AWS Textract: 텍스트 OCR (숫자/금액 정확도 보완)
+    │
+    ├─→ GPT-4o Vision: 품목명 + 수량 + 단가 + 금액 읽기
+    │     (Structured Output JSON Schema 적용)
+    │
+    └─→ 코드 후처리:
+          - 영수증 단가 컬럼 값 우선 사용 (역산 금지)
+          - 정규식으로 품목명 내 용량 추출
+          - 키워드 기반 카테고리 자동 분류
+          - 동일 식재료 Upsert (단가 갱신 + 이력 기록)
+```
 
+## 데모 계정
 
+시드 데이터를 넣었다면 아래 계정으로 로그인할 수 있습니다:
+
+- 이메일: `demo@foodcost.kr`
+- 비밀번호: `demo1234`
+
+## 라이선스
+
+MIT
